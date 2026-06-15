@@ -9,7 +9,7 @@ class SalesController {
    * Add a manual lead
    */
   async createLead(req, res) {
-    const { customer_name, customer_phone, customer_email, requirement, total_amount, assigned_to } = req.body;
+    const { customer_name, customer_phone, customer_email, requirement, total_amount, assigned_to, custom_fields } = req.body;
 
     if (!customer_name || !customer_phone) {
       return res.status(400).json({ error: 'Customer name and phone number are required' });
@@ -17,8 +17,8 @@ class SalesController {
 
     try {
       const result = await db.query(
-        `INSERT INTO leads (source, customer_name, customer_phone, customer_email, requirement, total_amount, assigned_to, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `INSERT INTO leads (source, customer_name, customer_phone, customer_email, requirement, total_amount, assigned_to, custom_fields, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING *`,
         [
           'manual',
@@ -28,6 +28,7 @@ class SalesController {
           requirement || null,
           total_amount || 0.00,
           assigned_to || null,
+          custom_fields || {},
           'lead_entry'
         ]
       );
@@ -110,7 +111,7 @@ class SalesController {
    */
   async updateLead(req, res) {
     const { id } = req.params;
-    const { status, next_follow_up_date, total_amount, requirement, assigned_to } = req.body;
+    const { status, next_follow_up_date, total_amount, requirement, assigned_to, custom_fields } = req.body;
 
     try {
       // 1. Fetch current lead status and details
@@ -156,6 +157,11 @@ class SalesController {
       if (assigned_to) {
         query += `, assigned_to = $${index}`;
         params.push(assigned_to);
+        index++;
+      }
+      if (custom_fields) {
+        query += `, custom_fields = $${index}`;
+        params.push(custom_fields);
         index++;
       }
 
