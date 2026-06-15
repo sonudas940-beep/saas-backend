@@ -10,7 +10,7 @@ class RmaController {
    * Log product intake (Received state)
    */
   async createRma(req, res) {
-    const { customer_name, customer_phone, customer_email, product_name, brand, serial_number, issue_description, warranty_status } = req.body;
+    const { customer_name, customer_phone, customer_email, product_name, brand, serial_number, issue_description, warranty_status, custom_fields } = req.body;
 
     if (!customer_name || !customer_phone || !product_name || !brand || !serial_number || !warranty_status) {
       return res.status(400).json({ error: 'Customer name, phone, product name, brand, serial, and warranty status are required' });
@@ -18,8 +18,8 @@ class RmaController {
 
     try {
       const result = await db.query(
-        `INSERT INTO rma_tickets (customer_name, customer_phone, customer_email, product_name, brand, serial_number, issue_description, warranty_status, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `INSERT INTO rma_tickets (customer_name, customer_phone, customer_email, product_name, brand, serial_number, issue_description, warranty_status, custom_fields, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING *`,
         [
           customer_name,
@@ -30,6 +30,7 @@ class RmaController {
           serial_number,
           issue_description || 'General inspection required',
           warranty_status,
+          custom_fields || {},
           'received' // Default status
         ]
       );
@@ -70,7 +71,7 @@ class RmaController {
    */
   async updateRmaStatus(req, res) {
     const { id } = req.params;
-    const { status, estimate_amount, brand_charge, challan_pdf_url } = req.body;
+    const { status, estimate_amount, brand_charge, challan_pdf_url, custom_fields } = req.body;
 
     try {
       // 1. Fetch current record
@@ -111,6 +112,11 @@ class RmaController {
       if (challan_pdf_url) {
         query += `, challan_pdf_url = $${index}`;
         params.push(challan_pdf_url);
+        index++;
+      }
+      if (custom_fields) {
+        query += `, custom_fields = $${index}`;
+        params.push(custom_fields);
         index++;
       }
 
