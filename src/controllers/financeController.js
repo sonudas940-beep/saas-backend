@@ -131,7 +131,7 @@ class FinanceController {
           amount_billed AS total_billed,
           job_expense AS job_expenses,
           (amount_billed - job_expense) AS net_profit,
-          status,
+          status::VARCHAR,
           created_at
         FROM service_tickets
         WHERE status = 'solved'
@@ -146,7 +146,7 @@ class FinanceController {
           estimate_amount AS total_billed,
           brand_charge AS job_expenses,
           (estimate_amount - brand_charge) AS net_profit,
-          status,
+          status::VARCHAR,
           created_at
         FROM rma_tickets
         WHERE status = 'ready' OR status = 'delivered'
