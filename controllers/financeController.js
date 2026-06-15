@@ -1,14 +1,8 @@
 const db = require('../config/db');
 const whatsappService = require('../utils/whatsappService');
 
-/**
- * Controller managing Cashier Ledger Approvals, Ticket Expenses, and Net Profits
- */
 class FinanceController {
   
-  /**
-   * Retrieve all payments (Sales, Service, and RMA)
-   */
   async getPayments(req, res) {
     try {
       const result = await db.query(
@@ -29,15 +23,10 @@ class FinanceController {
     }
   }
 
-  /**
-   * Cashier action: Approve cash/field collections to Settled.
-   * Dispatches WhatsApp notification containing receipt download url.
-   */
   async approvePayment(req, res) {
     const { id } = req.params;
 
     try {
-      // 1. Fetch payment details
       const payCheck = await db.query('SELECT * FROM payments WHERE id = $1', [id]);
       if (payCheck.rows.length === 0) {
         return res.status(404).json({ error: 'Payment record not found' });
@@ -49,11 +38,9 @@ class FinanceController {
         return res.status(400).json({ error: 'Payment is already settled and verified' });
       }
 
-      // 2. Generate a mock receipt PDF URL
       const receiptToken = payment.id.slice(0, 8).toUpperCase();
       const receiptPdfUrl = `http://localhost:5000/public/receipts/REC-${receiptToken}.pdf`;
 
-      // 3. Update payment status to settled
       const result = await db.query(
         `UPDATE payments 
          SET status = 'settled', receipt_pdf_url = $1, updated_at = CURRENT_TIMESTAMP 
@@ -64,7 +51,6 @@ class FinanceController {
 
       const updatedPayment = result.rows[0];
 
-      // 4. Fetch phone number from source modules to trigger customer alert
       let phone = '';
       if (updatedPayment.source_module === 'sales') {
         const check = await db.query('SELECT customer_phone FROM leads WHERE id = $1', [updatedPayment.source_id]);
@@ -77,9 +63,8 @@ class FinanceController {
         phone = check.rows[0]?.customer_phone;
       }
 
-      const targetPhone = phone || '919876543210'; // Fallback
+      const targetPhone = phone || '919876543210'; 
 
-      // 5. WhatsApp API Hook: Send PDF receipt link to customer
       const clientAlertMsg = `Dear ${updatedPayment.customer_name},\nYour payment of ₹${updatedPayment.amount} has been successfully settled and verified.\n` +
                              `Receipt Reference: REC-${receiptToken}.\nDownload your official PDF Receipt here:\n${receiptPdfUrl}\n\nThank you for choosing Tech IT World!`;
       
@@ -95,9 +80,6 @@ class FinanceController {
     }
   }
 
-  /**
-   * Retrieve strictly job-based expenses (excluding general overheads)
-   */
   async getExpenses(req, res) {
     try {
       const result = await db.query(
@@ -117,9 +99,6 @@ class FinanceController {
     }
   }
 
-  /**
-   * Dynamic SQL calculation for [Customer Bill] - [Job Expense] = Net Profit per ticket
-   */
   async getNetProfitSummary(req, res) {
     try {
       const sqlQuery = `
