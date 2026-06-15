@@ -11,7 +11,7 @@ class ServiceController {
    * Create service ticket (Manual admin log or Customer QR Web-Form scan)
    */
   async createTicket(req, res) {
-    const { source, customer_name, customer_phone, customer_email, device_details, issue_description } = req.body;
+    const { source, customer_name, customer_phone, customer_email, device_details, issue_description, custom_fields } = req.body;
 
     if (!customer_name || !customer_phone || !device_details || !issue_description) {
       return res.status(400).json({ error: 'Name, phone, device details, and issue description are required' });
@@ -21,8 +21,8 @@ class ServiceController {
       const ticketSource = source === 'qr_code' ? 'qr_code' : 'manual';
       
       const result = await db.query(
-        `INSERT INTO service_tickets (source, customer_name, customer_phone, customer_email, device_details, issue_description, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO service_tickets (source, customer_name, customer_phone, customer_email, device_details, issue_description, custom_fields, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING *`,
         [
           ticketSource,
@@ -31,6 +31,7 @@ class ServiceController {
           customer_email || null,
           device_details,
           issue_description,
+          custom_fields || {},
           'pending'
         ]
       );
